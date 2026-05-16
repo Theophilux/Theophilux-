@@ -1,0 +1,201 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helpers ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Role-based helpers (lookup from users collection)
+    function getUserData(uid) {
+      return get(/databases/$(database)/documents/users/$(uid)).data;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && getUserData(request.auth.uid).role == 'Admin';
+    }
+
+    function isLeader() {
+      let role = getUserData(request.auth.uid).role;
+      return isSignedIn() && (role == 'Admin' || role == 'District Leader' || role == 'Youth Leader' || role == 'Pathfinder Director');
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    // --- Validation Helpers ---
+
+    function isValidForumCategory(data) {
+      return data.title is string && data.title.size() > 0 && data.title.size() <= 100
+          && data.slug is string && data.slug.matches('^[a-z0-9-]+$');
+    }
+
+    function isValidForumThread(data) {
+      return data.title is string && data.title.size() > 0 && data.title.size() <= 200
+          && data.content is string && data.content.size() > 0 && data.content.size() <= 10000
+          && data.authorId == request.auth.uid
+          && data.categoryId is string;
+    }
+
+    function isValidForumPost(data) {
+      return data.content is string && data.content.size() > 0 && data.content.size() <= 10000
+          && data.authorId == request.auth.uid
+          && data.threadId is string;
+    }
+
+    function isValidUser(data) {
+      return data.fullName is string && data.fullName.size() > 0 && data.fullName.size() <= 100
+          && data.churchCode is string && data.churchCode.size() > 0 && data.churchCode.size() <= 20
+          && data.pin is string && data.pin.size() >= 4 && data.pin.size() <= 64 // Hashed PIN
+          && data.role in ['Admin', 'District Leader', 'Youth Leader', 'Pathfinder Director', 'Member'];
+    }
+
+    function isValidEvent(data) {
+      return data.title is string && data.title.size() > 0 && data.title.size() <= 200
+          && data.type in ['Sabbath', 'Youth Meeting', 'Camp Meeting', 'Drill', 'Social']
+          && data.startDate is timestamp;
+    }
+
+    function isValidAttendance(data) {
+      return data.eventId is string && data.userId is string
+          && data.status in ['present', 'absent', 'excused'];
+    }
+
+    function isValidPrayerRequest(data) {
+      return data.content is string && data.content.size() > 0 && data.content.size() <= 2000
+          && data.createdAt == request.time;
+    }
+
+    function isValidMember(data) {
+      return data.fullName is string && data.fullName.size() > 0 && data.fullName.size() <= 100
+          && data.church is string && data.church.size() > 0 && data.church.size() <= 100
+          && data.phone is string && data.phone.size() >= 7 && data.phone.size() <= 20
+          && (data.email == null || (data.email is string && data.email.size() <= 100))
+          && (data.notes == null || (data.notes is string && data.notes.size() <= 2000))
+          && data.role in ['Youth', 'Pathfinder', 'Leader', 'Member', 'Youth Leader', 'Pathfinder Director', 'District Leader', 'Admin'];
+    }
+
+    function isValidMeeting(data) {
+      return data.title is string && data.title.size() > 0 && data.title.size() <= 200
+          && (data.agenda == null || (data.agenda is string && data.agenda.size() <= 1000))
+          && data.status in ['scheduled', 'active', 'completed']
+          && (data.organizerId is string || data.organizerId == null);
+    }
+
+    function isValidMeetingMessage(data) {
+      return data.meetingId is string && data.meetingId.size() > 0
+          && data.content is string && data.content.size() > 0 && data.content.size() <= 1000
+          && data.senderId == request.auth.uid
+          && data.senderName is string;
+    }
+
+    // --- Collection Rules ---
+
+    // Members Directory
+    match /members/{memberId} {
+      allow list, get: if isSignedIn();
+      allow create: if isSignedIn() && isValidMember(incoming());
+      allow update: if isSignedIn() && (isLeader() || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    // Users
+    match /users/{userId} {
+      allow list: if isSignedIn() && request.query.limit <= 1; 
+      allow get: if isSignedIn();
+      allow create: if isSignedIn() && isValidUser(incoming());
+      allow update: if isSignedIn() && isValidUser(incoming())
+                    && (isOwner(userId) || isLeader() || incoming().pin == existing().pin);
+    }
+
+    match /users/{userId}/youthProfile/data {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && (isOwner(userId) || isLeader());
+    }
+
+    match /users/{userId}/pathfinderProfile/data {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && (isOwner(userId) || isLeader());
+    }
+
+    // Events
+    match /events/{eventId} {
+      allow read: if isSignedIn();
+      allow create, update: if isLeader() && isValidEvent(incoming());
+      allow delete: if isLeader();
+    }
+
+    // Attendance
+    match /events/{eventId}/attendance/{userId} {
+      allow read: if isSignedIn() && (isOwner(userId) || isLeader());
+      allow write: if isLeader() || (isOwner(userId) && exists(/databases/$(database)/documents/events/$(eventId))); 
+    }
+
+    // Prayer Requests
+    match /prayerRequests/{requestId} {
+      allow list: if isSignedIn();
+      allow get: if isSignedIn();
+      allow create: if isSignedIn() && isValidPrayerRequest(incoming()) && incoming().userId == request.auth.uid;
+      allow update: if isSignedIn() && isOwner(existing().userId) && incoming().diff(existing()).affectedKeys().hasOnly(['reactions']);
+      allow delete: if isSignedIn() && (isOwner(existing().userId) || isLeader());
+    }
+
+    // Talent Showcase
+    match /talentShowcase/{showcaseId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid;
+      allow update: if isSignedIn() && (isOwner(existing().userId) || isLeader());
+      allow delete: if isSignedIn() && (isOwner(existing().userId) || isLeader());
+    }
+
+    // Forum
+    match /forumCategories/{categoryId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isLeader();
+    }
+
+    match /forumThreads/{threadId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidForumThread(incoming());
+      allow update: if isSignedIn() && (isOwner(existing().authorId) || isLeader()) && isValidForumThread(incoming());
+      allow delete: if isSignedIn() && (isOwner(existing().authorId) || isLeader());
+    }
+
+    match /forumPosts/{postId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidForumPost(incoming());
+      allow update: if isSignedIn() && (isOwner(existing().authorId) || isLeader()) && isValidForumPost(incoming());
+      allow delete: if isSignedIn() && (isOwner(existing().authorId) || isLeader());
+    }
+
+    // Meetings
+    match /meetings/{meetingId} {
+      allow read, write: if isLeader() && (request.method == 'create' || request.method == 'update' ? isValidMeeting(incoming()) : true);
+    }
+
+    // Meeting Messages
+    match /meetingMessages/{messageId} {
+      allow read: if isLeader();
+      allow create: if isLeader() && isValidMeetingMessage(incoming()) && exists(/databases/$(database)/documents/meetings/$(incoming().meetingId));
+      allow update, delete: if false; // Messages are immutable for audit
+    }
+  }
+}

@@ -1,0 +1,267 @@
+{
+  "entities": {
+    "Member": {
+      "title": "Member",
+      "description": "A general church member record.",
+      "type": "object",
+      "properties": {
+        "fullName": { "type": "string" },
+        "church": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "notes": { "type": "string" },
+        "role": { "type": "string", "enum": ["Youth", "Pathfinder", "Leader", "Member"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["fullName", "church", "phone"]
+    },
+    "User": {
+      "title": "User",
+      "description": "Represents a member of the Kiomwobo Youths platform.",
+      "type": "object",
+      "properties": {
+        "fullName": { "type": "string" },
+        "churchCode": { "type": "string" },
+        "pinHash": { "type": "string" },
+        "role": { "type": "string", "enum": ["Admin", "District Leader", "Youth Leader", "Pathfinder Director", "Member"] },
+        "district": { "type": "string" },
+        "phone": { "type": "string" },
+        "profilePhoto": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["fullName", "pinHash", "role"]
+    },
+    "YouthMember": {
+      "title": "Youth Member",
+      "description": "Detailed records for youth members.",
+      "type": "object",
+      "properties": {
+        "memberId": { "type": "string" },
+        "attendance": { "type": "integer" },
+        "talents": { "type": "array", "items": { "type": "string" } },
+        "achievements": { "type": "array", "items": { "type": "string" } },
+        "spiritualGrowth": { "type": "integer", "description": "Progress score 0-100" },
+        "leadershipRole": { "type": "string" }
+      }
+    },
+    "PathfinderMember": {
+      "title": "Pathfinder Member",
+      "description": "Detailed records for Pathfinder members.",
+      "type": "object",
+      "properties": {
+        "memberId": { "type": "string" },
+        "drillScores": { "type": "array", "items": { "type": "integer" } },
+        "badges": { "type": "array", "items": { "type": "string" } },
+        "conductRecords": { "type": "array", "items": { "type": "string" } },
+        "camporeeStatus": { "type": "string" },
+        "classLevel": { "type": "string" }
+      }
+    },
+    "Event": {
+      "title": "Event",
+      "description": "A scheduled event for youth or pathfinders.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "location": { "type": "string" },
+        "rsvp": { "type": "array", "items": { "type": "string" }, "description": "User IDs who RSVP'd" },
+        "organizer": { "type": "string" },
+        "reminderSettings": { "type": "object" }
+      },
+      "required": ["title", "date"]
+    },
+    "PrayerRequest": {
+      "title": "Prayer Request",
+      "description": "Prayer request entry.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "prayerText": { "type": "string" },
+        "anonymous": { "type": "boolean" },
+        "prayerCount": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Devotional": {
+      "title": "Devotional",
+      "description": "Daily devotional content.",
+      "type": "object",
+      "properties": {
+        "language": { "type": "string" },
+        "content": { "type": "string" },
+        "audio": { "type": "string" },
+        "downloads": { "type": "integer" }
+      }
+    },
+    "AttendanceRecord": {
+      "title": "Attendance Record",
+      "description": "Specific attendance instance.",
+      "type": "object",
+      "properties": {
+        "memberId": { "type": "string" },
+        "eventId": { "type": "string" },
+        "status": { "type": "string", "enum": ["present", "absent", "late"] },
+        "timestamp": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Announcement": {
+      "title": "Announcement",
+      "description": "Platform announcement or alert.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "media": { "type": "string" },
+        "priority": { "type": "string", "enum": ["low", "medium", "high", "emergency"] },
+        "createdBy": { "type": "string" }
+      }
+    },
+    "MediaAsset": {
+      "title": "Media Asset",
+      "description": "Gallery or media content.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "url": { "type": "string" },
+        "type": { "type": "string", "enum": ["photo", "video", "moment"] },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "ForumCategory": {
+      "title": "Forum Category",
+      "description": "A top-level category for forum discussions.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "slug": { "type": "string" },
+        "order": { "type": "integer" }
+      },
+      "required": ["title", "slug"]
+    },
+    "ForumThread": {
+      "title": "Forum Thread",
+      "description": "A discussion thread within a category.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "authorId": { "type": "string" },
+        "authorName": { "type": "string" },
+        "categoryId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "lastPostAt": { "type": "string", "format": "date-time" },
+        "postCount": { "type": "integer" },
+        "isSticky": { "type": "boolean" },
+        "isLocked": { "type": "boolean" }
+      },
+      "required": ["title", "content", "authorId", "categoryId"]
+    },
+    "ForumPost": {
+      "title": "Forum Post",
+      "description": "A reply within a forum thread.",
+      "type": "object",
+      "properties": {
+        "content": { "type": "string" },
+        "authorId": { "type": "string" },
+        "authorName": { "type": "string" },
+        "threadId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["content", "authorId", "threadId"]
+    },
+    "Meeting": {
+      "title": "Meeting",
+      "description": "A leadership meeting session.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "agenda": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["scheduled", "active", "completed"] },
+        "organizerId": { "type": "string" },
+        "attendees": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["title", "date", "status"]
+    },
+    "MeetingMessage": {
+      "title": "Meeting Message",
+      "description": "A message sent during a leadership meeting.",
+      "type": "object",
+      "properties": {
+        "meetingId": { "type": "string" },
+        "senderId": { "type": "string" },
+        "senderName": { "type": "string" },
+        "content": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["meetingId", "senderId", "content"]
+    }
+  },
+  "firestore": {
+    "/members/{memberId}": {
+      "schema": "Member",
+      "description": "Church members directory records."
+    },
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles."
+    },
+    "/forumCategories/{categoryId}": {
+      "schema": "ForumCategory",
+      "description": "Forum categories."
+    },
+    "/forumThreads/{threadId}": {
+      "schema": "ForumThread",
+      "description": "Forum threads."
+    },
+    "/forumPosts/{postId}": {
+      "schema": "ForumPost",
+      "description": "Forum posts (replies)."
+    },
+    "/youthMembers/{memberId}": {
+      "schema": "YouthMember",
+      "description": "Youth specific details."
+    },
+    "/pathfinderMembers/{memberId}": {
+      "schema": "PathfinderMember",
+      "description": "Pathfinder specific details."
+    },
+    "/events/{eventId}": {
+      "schema": "Event",
+      "description": "Events data."
+    },
+    "/prayerRequests/{requestId}": {
+      "schema": "PrayerRequest",
+      "description": "Prayer requests."
+    },
+    "/devotionals/{devotionalId}": {
+      "schema": "Devotional",
+      "description": "Daily devotionals."
+    },
+    "/attendance/{attendanceId}": {
+      "schema": "AttendanceRecord",
+      "description": "Attendance history."
+    },
+    "/announcements/{announcementId}": {
+      "schema": "Announcement",
+      "description": "Global announcements."
+    },
+    "/gallery/{assetId}": {
+      "schema": "MediaAsset",
+      "description": "Media gallery content."
+    },
+    "/meetings/{meetingId}": {
+      "schema": "Meeting",
+      "description": "Leadership meetings."
+    },
+    "/meetingMessages/{messageId}": {
+      "schema": "MeetingMessage",
+      "description": "Messages within a meeting."
+    }
+  }
+}

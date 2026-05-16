@@ -1,0 +1,14 @@
+{
+  "name": "Kiomwobo Youths",
+  "description": "A futuristic Christian youth and Pathfinder management platform providing spiritual growth tools, SDA lessons, AI-powered assistance, and real-time church interaction.",
+  "requestFramePermissions": [
+    "camera",
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "AI-powered Bible Assistant",
+    "Real-time Prayer Wall",
+    "PIN-based Secure Authentication",
+    "Pathfinder \u0026 Youth Management"
+  ]
+}
